@@ -1,0 +1,416 @@
+#!/bin/ksh  
+#$Id: gestms,v 1.24 2011/06/17 09:44:38 confman Exp $
+
+#Procedura per la gestione dei moduli tar
+######################################################################
+
+GetPlatform()
+{
+	Server=`hostname | cut -f1 -d"."`
+	case ${Server} in
+        itxha320)
+					opi_version=/utenti/OPI_VERSION/
+					myproc=/develop/confman/bin
+					start=$PWD
+					Call2="java -classpath /develop/confman/bin/classes/p.jar rmsql"
+					Call3="java -classpath /develop/confman/bin/classes/p.jar PatchRep"
+					sftpCmd="sftp -B"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        itxsa42d|omis408)
+					opi_version=/confman/OPI_VERSION/
+					myproc=/develop/confman/bin
+					start=$PWD
+					Call="/confman/binutils/j2sdk1.4.1_03/bin/java -classpath /confman/bin/Classes/p.jar sql"
+					Call1="/confman/binutils/j2sdk1.4.1_03/bin/java -classpath /confman/bin/Classes/p.jar fsql"
+					Call2="/confman/binutils/j2sdk1.4.1_03/bin/java -classpath /confman/bin/Classes/p.jar rmsql"
+					Call3="/confman/binutils/j2sdk1.4.1_03/bin/java -classpath /confman/bin/Classes/p.jar PatchRep"
+					sftpCmd="sftp -b"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        itxsa407)
+                                        opi_version=/app/confman/OPI_VERSION
+                                        myproc=/app/wlsadm/bin
+                                        start=$PWD
+                                        Call="java -classpath /app/confman/bin/Classes/p.jar sql"
+                                        Call1="java -classpath /app/confman/bin/Classes/p.jar fsql"
+                                        Call2="java -classpath /app/confman/bin/Classes/p.jar rmsql"
+                                        Call3="java -classpath /app/confman/bin/Classes/p.jar PatchRep"
+                                        sftpCmd="sftp -b"
+                                        putCmd="put"
+                                        mkdirCmd="mkdir"
+        ;;
+        itxha117)
+					opi_version=/develop/confman/OPI_VERSION/
+					myproc=/develop/confman/bin
+					start=$PWD
+					Call="/develop/confman/java/jre/bin/java -classpath /develop/confman/bin/classes/p.jar sql"
+					Call1="/develop/confman/java/jre/bin/java -classpath /develop/confman/bin/classes/p.jar fsql"
+					Call2="/develop/confman/java/jre/bin/java -classpath /develop/confman/bin/classes/p.jar rmsql"
+					Call3="/develop/confman/java/jre/bin/java -classpath /develop/confman/bin/classes/p.jar PatchRep"
+					sftpCmd="sftp -b"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        itxsa42b)
+					opi_version=/app/confman/OPI_VERSION/
+					myproc=/app/confman/bin
+					start=$PWD
+					Call="/usr/bin/java -classpath /app/confman/bin/Classes/p.jar sql"
+					Call1="/usr/bin/java -classpath /app/confman/bin/Classes/p.jar fsql"
+					Call2="/usr/bin/java -classpath /app/confman/bin/Classes/p.jar rmsql"
+					Call3="/usr/bin/java -classpath /app/confman/bin/Classes/p.jar PatchRep"
+					sftpCmd="sftp -b"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        omis776)
+					opi_version=/polluxdv/confman/OPI_VERSION/
+					myproc=/polluxdv/confman/bin
+					start=$PWD
+					Call="/polluxdv/confman/opt/portal/6.7/pin/bin/java -classpath /polluxdv/confman/bin/Classes/p.jar sql"
+					Call1="/polluxdv/confman/opt/portal/6.7/pin/bin/java -classpath /polluxdv/confman/bin/Classes/p.jar fsql"
+					Call2="/polluxdv/confman/opt/portal/6.7/pin/bin/java -classpath /polluxdv/confman/bin/Classes/p.jar rmsql"
+					Call3="/polluxdv/confman/opt/portal/6.7/pin/bin/java -classpath /polluxdv/confman/bin/Classes/p.jar PatchRep"
+					sftpCmd="sftp -b"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        itxha131)
+					opi_version=/develop/confman/OPI_VERSION/
+					myproc=/develop/confman/bin
+					start=$PWD
+					Call="java -classpath /develop/confman/bin/Classes/p.jar sql"
+					Call1="java -classpath /develop/confman/bin/Classes/p.jar fsql"
+					Call2="java -classpath /develop/confman/bin/Classes/p.jar rmsql"
+					Call3="java -classpath /develop/confman/bin/Classes/p.jar PatchRep"
+					sftpCmd="sftp -b"
+					putCmd="put"
+					mkdirCmd="mkdir"
+        ;;
+        *)
+                Call="/usr/j2se/bin/java -classpath /forte/home/fte_bsmn/bin/Classes/p.jar rmsql"
+                ServerType=`uname`
+        ;;
+esac
+}
+#-----------------------------------------------------------------------------
+Uso()
+{
+	echo; echo; echo; echo; echo; echo;
+	echo " Usage: $0 <IdPatch>"
+	echo; echo; echo; echo; echo; echo;
+}
+#-----------------------------------------------------------------------------
+Check_Upd()
+{
+#set -xv
+#Ext=`echo $nomemodulo | awk '{nome = $1; while (index(nome, ".") > 0){nome = substr(nome,index(nome, ".")+1,length(nome))}print nome}'`
+Ext=${nomemodulo#*.} 
+if [ $Ext = $nomemodulo ]
+then
+	Ext=""
+fi
+
+
+
+case ${Ext} in
+	Z|zip)
+		Tipo="14"
+	;;
+	"tar.gz")
+		Tipo="21"
+	;;
+	gz)
+		Tipo="27"
+	;;
+	tar)
+		Tipo="12"
+	;;
+	jar)
+		Tipo="20"
+	;;
+	ksh)
+		Tipo="2"
+	;;
+	cfg|ini|xls|xml)
+		Tipo="1"
+	;;
+	*)
+		Tipo="0"		
+;;
+esac
+
+echo; echo; echo
+echo "Updating Helios... "
+echo "Tipo: " $Tipo "Modulo: " $Modulo	"Checksum: " $Checksum
+echo; echo; echo
+
+if [ $Tipo = "0" ]
+then
+	Ext=""
+else
+	Ext="."$Ext
+fi
+$Call2 "insert into patchrilfile (idpatchfile,idpatch,idtipofile,nomefile,estensione,numrighe,checksum) values (BUGMAN.IDPATCHFILE.NextVal,$idPatch,$Tipo,'$Modulo','$Ext',0,$Checksum)" 					
+
+}
+#-----------------------------------------------------------------------------
+TrasfNT()
+{
+#set -x
+echo ""
+echo "Copio su OM1NFS13"
+echo ""
+DatiNT=`$Call2 "select solcenter, area, OBS from modulivw where lower(Modulo) = lower('$modulo')"`
+SOL=`echo  $DatiNT|awk '{print $1}'`
+Area=`echo $DatiNT|awk '{print $2}'`
+OBS=`echo $DatiNT|awk '{print $3}'`
+
+SC="SMC-"$SOL
+
+echo $SC $Area $OBS
+
+VersMin=`echo $versione| cut -f2 -d"_"`
+
+cd $opi_version/FASE$FASE
+if [ -d $modulo"."$versione ]
+then
+   cd $modulo"."$versione
+	destdir_base="/cygdrive/d/Share_CM/om1nfs13/$idPatch/Versions/$SC/$Area"-OBS"$OBS/$modulo/Fase$FASE/$versione"
+	ssh confman@itwht089 mkdir -p $destdir_base/
+	echo "cd $destdir_base" > trx_$modulo
+   for nome in `ls -1`
+   do
+   	if [ $nome != "trx_$modulo" ]
+      then
+      	echo "$putCmd "$nome >> trx_$modulo
+      fi
+   done
+fi
+$Call3 $idPatch
+echo "$putCmd  "$Shipment".pdf" >> trx_$modulo
+$sftpCmd trx_$modulo confman@itwht089
+rm -f trx_$modulo
+rm -f $Shipment".pdf"
+ssh confman@itwht089 bash bin/trasfOM1NFS13.sh $idPatch
+}
+#-----------------------------------------------------------------------------
+Versionamento()
+{
+			ls -lart RCS
+			echo $PWD
+			echo "Which file do you want to release"?! 
+			echo; echo " > \c "; read risposta
+			tst=`echo $risposta| cut -f2 -d,`
+			if [ $tst = "v" ]
+			then
+				if [ -f $dir/RCS/$risposta ]
+				then
+					co $risposta
+					risposta=`echo $risposta| cut -f1 -d,`
+					rcs -q -N$modulo"_"$versione: $risposta
+					if [ $modulo = "mdb" ]
+              	then
+						rcs -q -N$modulo"_"$versione: TemplatePrefattura.mdb.gz
+					fi
+				fi			
+			else
+					if [ -f $dir/RCS/$risposta",v" ]
+					then
+						co $risposta
+						rcs -q -N$modulo"_"$versione: $risposta
+						if [ $modulo = "mdb" ]
+               	then
+                  	rcs -q -N$modulo"_"$versione: TemplatePrefattura.mdb.gz,v
+						fi
+					else
+						echo "il file non esiste"
+						exit
+					fi			
+			fi			
+			mod1=`echo $risposta|cut -f1 -d.`  #prendi tutto prima del punto
+			est=`echo $risposta|cut -f2,3 -d.`  #prendi tutto dopo il primo punto
+			
+			if [ $mod1 != $modulo ]
+			then
+				if [ ! -d $opi_version/FASE$FASE ]
+				then
+					mkdir $opi_version/FASE$FASE
+				fi
+				cd $opi_version/FASE$FASE
+				if [ ! -d $modulo"."$versione ]
+					then
+						mkdir $modulo"."$versione
+					else
+						echo "Directory $modulo"."$versione already exists"
+				fi
+				cd -
+				mv $risposta $opi_version/FASE$FASE/$modulo"."$versione/.
+				echo
+				echo "Moving file $newmod into $opi_version/FASE$FASE/$modulo"."$versione/"
+				echo
+				cd $opi_version/FASE$FASE/$modulo"."$versione
+				#mv $newmod $mod1"."$est
+				nomemodulo=$risposta
+				Checksum=`cksum $nomemodulo | awk '{print $1}'`
+				Modulo=$nomemodulo
+				Check_Upd
+			else	
+				if [ ! -d $opi_version/FASE$FASE ]
+				then
+					mkdir $opi_version/FASE$FASE
+				fi
+					cd $opi_version/FASE$FASE
+					if [ ! -d $modulo"."$versione ]
+					then
+						mkdir $modulo"."$versione
+					else
+						echo "Directory $modulo"."$versione already exists"
+				fi
+				cd -
+				mv $risposta $mod1"_"$versione"."$est
+				newmod=$mod1"_"$versione"."$est
+				mv $newmod $opi_version/FASE$FASE/$modulo"."$versione/.
+				cd $opi_version/FASE$FASE/$modulo"."$versione/
+				nomemodulo=$newmod
+				Checksum=`cksum $newmod | awk '{print $1}'`
+				Modulo=$nomemodulo
+				Check_Upd
+			fi
+}
+#-------------------------------------------------------------------------
+Fatutto()
+{
+		if [ -d $start/RCS ]
+			then 
+				chmod 755 RCS
+				dir=$start
+				cd $start/RCS/..
+				Versionamento
+			else
+				echo ; echo ; echo ;
+				echo "Directories exe - src - cnf contains following files:" 
+				cd exe > /dev/null
+				echo "----------------------------EXE-----------------------"
+				echo ; echo ; echo ;
+				ls -lrt RCS
+				echo ; echo ; echo ;
+				echo "----------------------------SRC-----------------------"
+				cd ../src
+				echo ; echo ; echo ;
+				ls -lrt RCS
+				echo ; echo ; echo ;
+				echo "----------------------------CNF-----------------------"
+				cd ../cnf
+				echo ; echo ; echo ;
+	   			ls -lrt RCS
+	   			echo ; echo ; echo ;
+				echo "Are there files to manage into directory --> exe? "
+				echo; echo " > \c "; read risposta
+				if [ -z $risposta ]
+					then
+					risposta="y"
+				fi
+				case ${risposta} in
+					y|Y)
+						cd $start/exe
+						chmod 755 RCS
+						dir=$PWD
+						Versionamento
+						cd $start
+					;;
+				esac	
+				echo "Are there files to manage into directory --> src? "
+				echo; echo " > \c "; read risposta
+				if [ -z $risposta ]
+				then
+					risposta="y"
+				fi
+				case ${risposta} in
+	
+					y|Y)
+						cd $start/src
+						chmod 755 RCS
+						dir=$PWD
+						Versionamento
+						cd $start
+					;;
+				esac
+				echo "Are there files to manage into directory --> cnf? "
+				echo; echo " > \c "; read risposta
+				if [ -z $risposta ]
+					then
+					risposta="y"
+				fi
+				case ${risposta} in
+	
+					y|Y)
+						cd $start/cnf
+						chmod 755 RCS
+						dir=$PWD
+						Versionamento
+						cd $start
+					;;
+				esac
+				
+		fi
+echo; echo; echo
+echo "All done!, Are there other files to manage? [y/n]"
+echo; echo " > \c "; read risposta
+}
+#-----------------------------------------------------------------------------
+#MAIN
+#-----------------------------------------------------------------------------
+clear
+
+if [ $# != "1" ]
+then
+	Uso
+	exit 1
+fi
+
+idPatch=$1
+
+
+clear
+GetPlatform
+echo "-----------------------------------"
+echo "Archive Modules Managment on $Server"
+echo "-----------------------------------"	
+
+DatiPatch=`$Call2 "select modulo,versione,shipment from patchvw where idpatch = $idPatch"`
+modulo=`echo $DatiPatch|awk '{print $1}'`
+versione=`echo $DatiPatch|awk '{print $2}'`
+Shipment=`echo $DatiPatch|awk '{print $3}'`
+FASE=`echo $versione|cut -f1 -d_`
+
+ServerRM=`$Call2 "select lower(server) from modulivw where modulo = '$modulo'"`
+if [ $ServerRM != $Server ]
+then
+		echo; echo; echo;
+   echo "Watch Out!!!! Server is not correct!!!"
+   echo
+   exit 1
+fi
+if [ "$idPatch" = "" ]
+then
+	echo; echo; echo;
+   echo "PatchId not existing in Helios"
+   echo
+   exit 1
+else 
+	echo "Managment for Module $modulo Versione $versione "
+	echo "--->Deleting rows into Patch "$idPatch"<---"
+	sleep 2
+	$Call2 "delete from patchrilfile where idpatch = $idPatch"
+fi
+
+Fatutto
+while [ $risposta = "y" -o $risposta = "Y" ]
+do	
+		Fatutto
+done
+TrasfNT
